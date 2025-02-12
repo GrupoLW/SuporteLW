@@ -1,0 +1,2 @@
+UPDATE sistemaMultas.contasReceberRecibo SET descricao='RENDIMENTO 17/01/2025' WHERE id=27379;
+
