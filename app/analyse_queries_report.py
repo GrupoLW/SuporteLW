@@ -1,214 +1,312 @@
-from utils.report import Report
-from utils.vehicle import Vehicle
-from models.vehicle_DAO import find_vehicle_in_db
-from views.spreadsheet import concatenate_database_results, search_for_data
-
-
-from PySide6.QtCore import Signal, QObject
-
 import pandas as pd
-import time
+from PySide6.QtCore import  QObject, Signal
 
-class VehicleReport(Report, QObject):
+
+
+from app.query_info import centralizadores_uf_fonte_consulta
+from views.spreadsheet import write_spreadsheet
+from utils.vehicle import Vehicle
+from app.query_info import centralizadores_uf_fonte_consulta, federal_agencies, centralizadores_estaduais_fonte_consulta, cod_orgao_fonte_consulta_especificidade
+
+class AnalyseAutuadorWithID(QObject):
+
+    def __init__(self, connection, output: str, file_name: str, id_multas: list, date: str):
+        self.con = connection
+        self.output = output
+        self.file_name = file_name
+        self.id_multas = id_multas
+        self.date = date
+        self.make_query()
+
+
+    def _query(self, id_veiculo, fonte_consulta, data_hora):
+        print(id_veiculo, fonte_consulta, data_hora)
+        query = """SELECT vuc.data_hora from veiculoUltimaConsulta vuc WHERE vuc.id_veiculo = %s
+        and vuc.fonte_consulta = %s and vuc.data_hora >= %s
+        GROUP by vuc.id_veiculo LIMIT 1;"""
+        try:
+            df = pd.read_sql(sql=query, con=self.con, params=(id_veiculo, fonte_consulta, data_hora))
+        except Exception as e:
+            print(f"Erro na execução da consulta: {e}")
+            return None
+
+        if df.empty:
+            return None
+        else:
+            return df['data_hora'].iloc[0]
+
+
+
+    def make_query(self):
+        placeholder_sequence = ', '.join(['%s'] * len(self.id_multas))
+
+        query = f"""SELECT m.id as id_multa, v.uf_veic, v.placa, m.autoInfracao, m.situacao, o.nome orgaoNome, m.id_veiculo , m.dataHoraUltimaLeitura , m.estado , m.fonteConsulta , m.fonteConsultaBoleto , m.orgao as cod_orgao,
+        mo.fonte_consulta as fonteConsultaCodOrgao
+        from multaDetalhada m 
+        INNER JOIN veiculos v ON (v.id = m.id_veiculo)
+        LEFT JOIN orgao o ON (o.cod_orgao = m.orgao)
+        left join miner_orgao mo on (m.orgao = mo.cod_orgao)
+        where m.id in ({placeholder_sequence});"""
+
+        df = pd.read_sql(sql=query, con=self.con, params=self.id_multas)
+
+        if df.loc[df['fonteConsultaCodOrgao'].isna() == False].empty == False:
+            df['Consulta cod_orgao'] = df.loc[df['fonteConsultaCodOrgao'].isna() == False].apply(lambda row: self._query(id_veiculo=row['id_veiculo'], fonte_consulta=row['fonteConsultaCodOrgao'], data_hora=self.date), axis=1)
+            df['Consulta cod_orgao'].loc[df['Consulta cod_orgao'].isna() == True] = 'Sem Consulta'
+        else:
+            df['Consulta cod_orgao'] = 'Não consultamos este órgão autuador'
+
+        
+        if df.loc[df['fonteConsulta'].isna() == False].empty == False:
+            df['Consulta fonteConsulta'] = df.loc[df['fonteConsulta'].isna() == False].apply(lambda row: self._query(id_veiculo=row['id_veiculo'], fonte_consulta=row['fonteConsulta'], data_hora=self.date), axis=1)
+            df['Consulta fonteConsulta'].loc[df['Consulta fonteConsulta'].isna() == True] = 'Sem Consulta'
+        else:
+            df['Consulta fonteConsulta'] = 'Sem fonte consulta'
+
+        if df.loc[df['fonteConsultaBoleto'].isna() == False].empty == False:
+            df['Consulta fonteConsultaBoleto'] = df.loc[df['fonteConsultaBoleto'].isna() == False].apply(lambda row: self._query(id_veiculo=row['id_veiculo'], fonte_consulta=row['fonteConsultaBoleto'], data_hora=self.date), axis=1)
+            df['Consulta fonteConsultaBoleto'].loc[df['Consulta fonteConsultaBoleto'].isna() == True] = 'Sem Consulta'
+        else:
+            df['Consulta fonteConsultaBoleto'] = 'Sem fonte consulta'
+
+        if self.output.strip() != '' and self.file_name.strip() != '':
+            try:
+                write_spreadsheet(df_result=df, output=self.output, file_name=self.file_name)
+            except Exception:
+                print('Deu ruim')
+
+
+class AnalyseAutuador(QObject):
+
+    def __init__(self, connection, output: str, file_name: str, id_multas: list, date: str):
+        self.con = connection
+        self.output = output
+        self.file_name = file_name
+        self.id_multas = id_multas
+        self.date = date
+        self.make_query()
+
+
+    def _query(self, id_veiculo, fonte_consulta, data_hora):
+        print(id_veiculo, fonte_consulta, data_hora)
+        query = """SELECT vuc.data_hora from veiculoUltimaConsulta vuc WHERE vuc.id_veiculo = %s
+        and vuc.fonte_consulta = %s and vuc.data_hora >= %s
+        GROUP by vuc.id_veiculo LIMIT 1;"""
+        try:
+            df = pd.read_sql(sql=query, con=self.con, params=(id_veiculo, fonte_consulta, data_hora))
+        except Exception as e:
+            print(f"Erro na execução da consulta: {e}")
+            return None
+
+        if df.empty:
+            return None
+        else:
+            return df['data_hora'].iloc[0]
+
+
+
+    def make_query(self):
+        placeholder_sequence = ', '.join(['%s'] * len(self.id_multas))
+
+        query = f"""SELECT m.id as id_multa, v.uf_veic, v.placa, m.autoInfracao, m.situacao, o.nome orgaoNome, m.id_veiculo , m.dataHoraUltimaLeitura , m.estado , m.fonteConsulta , m.fonteConsultaBoleto , m.orgao as cod_orgao,
+        mo.fonte_consulta as fonteConsultaCodOrgao
+        from multaDetalhada m 
+        INNER JOIN veiculos v ON (v.id = m.id_veiculo)
+        LEFT JOIN orgao o ON (o.cod_orgao = m.orgao)
+        left join miner_orgao mo on (m.orgao = mo.cod_orgao)
+        where m.id in ({placeholder_sequence});"""
+
+        df = pd.read_sql(sql=query, con=self.con, params=self.id_multas)
+
+
+        if df.loc[df['fonteConsultaCodOrgao'].isna() == False].empty == False:
+            df['Consulta cod_orgao'] = df.loc[df['fonteConsultaCodOrgao'].isna() == False].apply(lambda row: self._query(id_veiculo=row['id_veiculo'], fonte_consulta=row['fonteConsultaCodOrgao'], data_hora=self.date), axis=1)
+            df['Consulta cod_orgao'].loc[df['Consulta cod_orgao'].isna() == True] = 'Sem Consulta'
+        else:
+            df['Consulta cod_orgao'] = 'Não consultamos este órgão autuador'
+        
+        if df.loc[df['fonteConsulta'].isna() == False].empty == False:
+            df['Consulta fonteConsulta'] = df.loc[df['fonteConsulta'].isna() == False].apply(lambda row: self._query(id_veiculo=row['id_veiculo'], fonte_consulta=row['fonteConsulta'], data_hora=self.date), axis=1)
+            df['Consulta fonteConsulta'].loc[df['Consulta fonteConsulta'].isna() == True] = 'Sem Consulta'
+        else:
+            df['Consulta fonteConsulta'] = 'Sem fonte consulta'
+
+        if df.loc[df['fonteConsultaBoleto'].isna() == False].empty == False:
+            df['Consulta fonteConsultaBoleto'] = df.loc[df['fonteConsultaBoleto'].isna() == False].apply(lambda row: self._query(id_veiculo=row['id_veiculo'], fonte_consulta=row['fonteConsultaBoleto'], data_hora=self.date), axis=1)
+            df['Consulta fonteConsultaBoleto'].loc[df['Consulta fonteConsultaBoleto'].isna() == True] = 'Sem Consulta'
+        else:
+            df['Consulta fonteConsultaBoleto'] = 'Sem fonte consulta'
+
+        if self.output.strip() != '' and self.file_name.strip() != '':
+            try:
+                write_spreadsheet(df_result=df, output=self.output, file_name=self.file_name)
+            except Exception:
+                print('Deu ruim')
+
+
+
+
+
+
+
+class AnalyseUF(QObject):
+    def __init__(self, connection, output: str, file_name: str, plates: list, date: str):
+        self.con = connection
+        self.output = output
+        self.file_name = file_name
+        self.plates = plates
+        self.date = date
+        self.make_query()
+
+    def search_vehicle_in_db(self, df, param):
+        placeholder_sequence = ', '.join(['%s'] * len(param))
+        query = f"""SELECT v.placa as placa_lw_x , v.uf_veic as uf_veic_x from veiculos v where v.placa in ({placeholder_sequence});"""
+        df_result = pd.read_sql(sql=query, con=self.con, params=param)
+        df = pd.merge(df, df_result,how='left', left_on=['Placa'], right_on='placa_lw_x')
+        df['placa_lw'].fillna(df['placa_lw_x'], inplace=True)
+        df['uf_veic'].fillna(df['uf_veic_x'], inplace=True)
+        df.drop(['placa_lw_x', 'uf_veic_x'], axis=1, inplace=True)
+        return df
+
+    def _query(self, plate, fonte_consulta, data_hora):
+        print(plate, fonte_consulta, data_hora)
+        query = """SELECT vuc.data_hora from veiculoUltimaConsulta vuc 
+        WHERE vuc.id_veiculo = (SELECT v.id FROM veiculos v where v.placa = %s)
+        and vuc.fonte_consulta = %s and vuc.data_hora >= %s
+        GROUP by vuc.id_veiculo LIMIT 1;"""
+        df = pd.read_sql(sql=query, con=self.con, params=(plate,fonte_consulta, data_hora))
+        print (df)
+        if df.empty:
+            return None
+        else:
+            result = df['data_hora']
+            return result
+
+
+    def make_query(self):
+        df = pd.DataFrame({'Placa': self.plates, 'placa_lw': None, 'uf_veic': None})
+        df['Placa'].astype(str)
+
+        df = self.search_vehicle_in_db(df=df, param=self.plates)
+
+        #Invertendo a placa
+        if df.loc[df['placa_lw'].isna()].empty == False:
+            df.loc[df['placa_lw'].isna(), 'Placa'] = df.loc[df['placa_lw'].isna(), 'Placa'].apply(lambda plate: Vehicle.static_reverse_the_plate_pattern(plate))
+            plates = df.loc[df['placa_lw'].isna(), 'Placa'].to_list()
+            df = self.search_vehicle_in_db(df=df, param=plates)
+
+        if df.loc[df['uf_veic'].isin(centralizadores_uf_fonte_consulta.keys())].empty == False:
+            df['Consulta_uf'] = df.loc[df['uf_veic'].isin(centralizadores_uf_fonte_consulta.keys())].apply(lambda row: self._query(plate=row['placa_lw'], fonte_consulta=centralizadores_uf_fonte_consulta[row['uf_veic']], data_hora=self.date), axis=1)
+            df['Consulta_uf'].loc[df['Consulta_uf'].isna() == True] = 'Não consultamos esta UF'
+        else:
+            df['Consulta_uf'] = 'Não consultamos esta UF'
+
+        if self.output.strip() != '' and self.file_name.strip() != '':
+            try:
+                write_spreadsheet(df_result=df, output=self.output, file_name=self.file_name)
+            except Exception:
+                print('Deu ruim')
+        
+
+
+class AnalyseAll(QObject):
     status_report = Signal(str)
     report_finished = Signal(str)
     error_report = Signal(str)
     terminated = Signal(str)
 
-    def __init__(self, connection, input, output, file_name):
-        super().__init__(input, output, file_name)
+    def __init__(self, connection, output: str, file_name: str, id_multas: list, date: str):
+        super().__init__()
         self.con = connection
+        self.output = output
+        self.file_name = file_name
+        self.id_multas = id_multas
+        self.date = date
 
-
-    def make_vehicle_report(self):
-        self.read_spreadsheet()
-        print('Lendo a planilha...')
-        self.status_report.emit('Lendo a planilha...')
-
-        data_sought = search_for_data(self.table_read, 'placa')
-        
-        if data_sought:
-            self.table_read = self.table_read.rename(columns={data_sought: 'Placa Fornecida'})
-            self.table_read['Placa Fornecida'] = self.table_read['Placa Fornecida'].apply(Vehicle.clean_data)
-        
-        data_sought = search_for_data(self.table_read, 'renavam')
-
-        if data_sought:
-            self.table_read = self.table_read.rename(columns={data_sought: 'Renavam Fornecido'})
-            self.table_read['Renavam Fornecido'] = self.table_read['Renavam Fornecido'].apply(Vehicle.clean_data)
-        
-        
-        data_sought = search_for_data(self.table_read, 'chassi')
-
-        if data_sought:
-            self.table_read = self.table_read.rename(columns={data_sought: 'Chassi Fornecido'})
-            self.table_read['Chassi Fornecido'] = self.table_read['Chassi Fornecido'].apply(Vehicle.clean_data)
-        
-        data_sought = search_for_data(self.table_read, 'uf')
-
-        if data_sought:
-            self.table_read = self.table_read.rename(columns={data_sought: 'UF Fornecida'})
-            self.table_read['UF Fornecida'] = self.table_read['UF Fornecida'].apply(Vehicle.clean_data)
-
-
-        original_columns = list(self.table_read.columns)
-        df_table_read_info = self.table_read
-        
-        #self.process.standard_reading()
-
-        self.status_report.emit('Leitura da planilha finalizada...')
-
-        
-        #Informações veículos
-        df_result = pd.DataFrame()
-        database_info = pd.DataFrame()
-
-
-        print('DF antes da consulta\n', df_table_read_info)
-        #Se for fornecido uma coluna Placa
-        if 'Placa Fornecida' in original_columns:
-            self.status_report.emit('Consultando pela placa...')
-            #Lista de placas para a consulta
-            placas = df_table_read_info.loc[~df_table_read_info['Placa Fornecida'].isna(), 'Placa Fornecida'].to_list()
-        
-            #Consulta no banco de dados
-            database_info = find_vehicle_in_db(self.con, 'placa', placas)
-            database_info['Análise Veículo'] = 'Encontrado pela Placa'
-
-            
-
-            #Merge
-            df_table_read_info = pd.merge(left=df_table_read_info, right=database_info, how='left', left_on='Placa Fornecida', right_on='placa')
-
-            
-            
-            #Concatenando Resultados
-            df_result = concatenate_database_results(df_result, df_table_read_info)
-
-            print(df_result)
-            df_table_read_info = df_result.loc[df_result['id_veic'].isna()][original_columns]
-
-
-
-            
-            if 'id_veic' in df_result.columns:
-                df_result = df_result.loc[~df_result['id_veic'].isna()]
-
-            print('Resultado\n', df_result)
-            print('Para consulta\n', df_table_read_info)
-            #Se não encontrar pelo padrão fornecido -> fazer a conversão
-            if df_table_read_info.empty == False:
-                self.status_report.emit('Invertendo as placas e consultando novamente ...')
-                df_table_read_info['Placa Fornecida'] = df_table_read_info['Placa Fornecida'].apply(Vehicle.static_reverse_the_plate_pattern)
-                #Lista de placas Invertidas para consulta
-                placas = df_table_read_info.loc[~df_table_read_info['Placa Fornecida'].isna(), 'Placa Fornecida'].to_list()
-
-                try:
-                    #Consulta no banco de dados
-                    database_info = find_vehicle_in_db(self.con, 'placa', placas)
-                    database_info['Análise Veículo'] = 'Encontrado pela Placa em outro padrão'
-                except Exception:
-                    time.sleep(2)
-
-                #Merge
-                df_table_read_info = pd.merge(left=df_table_read_info, right=database_info, how='left', left_on='Placa Fornecida', right_on='placa')
-
-
-                #Concatenando Resultados
-                df_result = concatenate_database_results(df_result, df_table_read_info)
-                
-                df_table_read_info = df_result.loc[df_result['id_veic'].isna()][original_columns]
-
-                if 'id_veic' in df_result.columns:
-                    df_result = df_result.loc[~df_result['id_veic'].isna()]
-
-                print('Resultado\n', df_result)
-                print('Para consulta\n', df_table_read_info)
-
-        #Se for fornecido renavam
-        if 'Renavam Fornecido' in original_columns:
-            self.status_report.emit('Consultando pelo renavam ...')
-            #Tratando a coluna dos renavan para ter 11 digitos
-            df_table_read_info['Renavam Fornecido'] = df_table_read_info['Renavam Fornecido'].apply(Vehicle.renavam_with_11_digits)
-            
-            #Lista de renavam com 11 digitos
-            list_renavam = df_table_read_info.loc[~df_table_read_info['Renavam Fornecido'].isna(), 'Renavam Fornecido'].to_list()
-
-            try:
-                #Consulta no banco de dados
-                database_info = find_vehicle_in_db(self.con, 'renavam', list_renavam)
-                database_info['Análise Veículo'] = 'Encontrado pelo Renavam'
-            except Exception:
-                time.sleep(2)
-
-
-            #Merge
-            df_table_read_info = pd.merge(left=df_table_read_info, right=database_info, how='left', left_on='Renavam Fornecido', right_on='renavam')
-
-            #Concatenando Resultados
-            df_result = concatenate_database_results(df_result, df_table_read_info)
-            df_table_read_info = df_result.loc[df_result['id_veic'].isna()][original_columns]
-
-            if 'id_veic' in df_result.columns:
-                df_result = df_result.loc[~df_result['id_veic'].isna()]
-
-            print('Resultado\n', df_result)
-            print('Para consulta\n', df_table_read_info)
-        
-
-        #Se for fornecido chassi
-        if 'Chassi Fornecido' in original_columns:
-            self.status_report.emit('Consultando pelo Chassi ...')
-
-            #Lista de Chassi
-            list_chassi = df_table_read_info.loc[~df_table_read_info['Chassi Fornecido'].isna(), 'Chassi Fornecido'].to_list()
-
-            try:
-                #Consulta no banco de dados
-                database_info = find_vehicle_in_db(self.con, 'chassi', list_chassi)
-                database_info['Análise Veículo'] = 'Encontrado pelo Chassi'
-            except Exception:
-                time.sleep(2)
-
-            #Merge
-            df_table_read_info = pd.merge(left=df_table_read_info, right=database_info, how='left', left_on='Chassi Fornecido', right_on='chassi')
-
-            #Concatenando Resultados 
-            df_result = concatenate_database_results(df_result, df_table_read_info)
-
-            print('Resultado\n', df_result)
-            print('Para consulta\n', df_table_read_info)
-
-        
-        print('Resultado\n', df_result)
-        print('Para consulta\n', df_table_read_info)
-
-
-        if 'Análise Veículo' in df_result.columns:
-            df_result.loc[df_result['Análise Veículo'].isna(), 'Análise Veículo'] = 'Placa não cadastrada em nosso sistema'
-            if 'UF Fornecida' in original_columns:
-                df_result.loc[(df_result['UF Fornecida'] != df_result['uf_veic']) & (~df_result['uf_veic'].isna()), 'Análise Emplacamento'] = 'UF Divergente'
-                df_result.loc[df_result['Análise Emplacamento'].isna(), 'Análise Emplacamento'] = 'Cadastro Atualizado'
-            if 'Placa Fornecida' in original_columns:
-                df_result.loc[(df_result['Placa Fornecida'] != df_result['placa']) & (~df_result['placa'].isna()), 'Análise Placa'] = 'Placa Divergente'
-                df_result.loc[df_result['Análise Placa'].isna(), 'Análise Placa'] = 'Cadastro Atualizado'
-            if 'Renavam Fornecido' in original_columns:
-                df_result.loc[(df_result['Renavam Fornecido'] != df_result['renavam']) & (~df_result['renavam'].isna()), 'Análise Renavam'] = 'Renavam Divergente'
-                df_result.loc[df_result['Análise Renavam'].isna(), 'Análise Renavam'] = 'Cadastro Atualizado'
-            if 'Chassi Fornecido' in original_columns:
-                df_result.loc[(df_result['Chassi Fornecido'] != df_result['chassi']) & (~df_result['chassi'].isna()), 'Análise Chassi'] = 'Chassi Divergente'
-                df_result.loc[df_result['Análise Chassi'].isna(), 'Análise Chassi'] = 'Cadastro Atualizado'
-
-        print('Resultado\n', df_result)
-        print('Para consulta\n', df_table_read_info)
-
+    def _query(self, id_veiculo, fonte_consulta, data_hora):
+        print(id_veiculo, fonte_consulta, data_hora)
+        query = """SELECT vuc.data_hora from veiculoUltimaConsulta vuc WHERE vuc.id_veiculo = %s
+        and vuc.fonte_consulta = %s and vuc.data_hora >= %s
+        GROUP by vuc.id_veiculo LIMIT 1;"""
         try:
-            self.status_report.emit('Gerando o relatório ...')
-            self.produce_report(df_result)
-            self.report_finished.emit('O relatório foi gerado com sucesso!!')
-        except Exception:
-            self.error_report.emit('Um erro ocorreu na hora de escrever o relatório')
-        self.terminated.emit('Processo finalizado')
+            df = pd.read_sql(sql=query, con=self.con, params=(id_veiculo, fonte_consulta, data_hora))
+        except Exception as e:
+            print(f"Erro na execução da consulta: {e}")
+            return None
+
+        if df.empty:
+            return None
+        else:
+            return df['data_hora'].iloc[0]
+
+
+
+    def make_query(self):
+        placeholder_sequence = ', '.join(['%s'] * len(self.id_multas))
+        self.status_report.emit('Procurando as multas no Banco')
+
+        query = f"""SELECT m.id as id_multa, v.uf_veic, v.placa, m.autoInfracao, m.situacao, o.nome orgaoNome, m.id_veiculo , m.dataHoraUltimaLeitura , m.estado , m.fonteConsulta , m.fonteConsultaBoleto , m.orgao as cod_orgao,
+        mo.fonte_consulta as fonteConsultaCodOrgao
+        from multaDetalhada m 
+        INNER JOIN veiculos v ON (v.id = m.id_veiculo)
+        LEFT JOIN orgao o ON (o.cod_orgao = m.orgao)
+        left join miner_orgao mo on (m.orgao = mo.cod_orgao)
+        where m.id in ({placeholder_sequence});"""
+
+        df = pd.read_sql(sql=query, con=self.con, params=self.id_multas)
+
+        if df.loc[df['uf_veic'].isin(centralizadores_uf_fonte_consulta.keys())].empty == False:
+            self.status_report.emit('Verificando as consultas no Emplacametnto')
+            df['Consulta_uf'] = df.loc[df['uf_veic'].isin(centralizadores_uf_fonte_consulta.keys())].apply(lambda row: self._query(id_veiculo=row['id_veiculo'], fonte_consulta=centralizadores_uf_fonte_consulta[row['uf_veic']], data_hora=self.date), axis=1)
+            df['Consulta_uf'].loc[df['Consulta_uf'].isna() == True] = 'Sem consulta'
+        else:
+            df['Consulta_uf'] = 'Não consultamos esta UF'
+
+        if df.loc[df['fonteConsultaCodOrgao'].isin(federal_agencies)].empty == False:
+            df.loc[df['fonteConsultaCodOrgao'].isin(federal_agencies), 'Consulta Centralizador Estado'] = 'Agência Federal (DPRF/DNIT)'
+        
+        
+        if df.loc[~df['fonteConsultaCodOrgao'].isin(federal_agencies)].empty == False:
+            self.status_report.emit('Verificando as consultas no Centralizador Estadual')
+            df.loc[(~df['fonteConsultaCodOrgao'].isin(federal_agencies)) & (df['estado'].isin(centralizadores_estaduais_fonte_consulta.keys())), 'Consulta Centralizador Estado'] = df.loc[(~df['fonteConsultaCodOrgao'].isin(federal_agencies)) & (df['estado'].isin(centralizadores_estaduais_fonte_consulta.keys()))].apply(lambda row: self._query(id_veiculo=row['id_veiculo'], fonte_consulta=centralizadores_estaduais_fonte_consulta[row['estado']], data_hora=self.date), axis=1)
+            df['Consulta Centralizador Estado'].loc[df['Consulta Centralizador Estado'].isna() == True] = 'Sem consulta'
+
+
+        if df.loc[df['cod_orgao'].isin(cod_orgao_fonte_consulta_especificidade.keys())].empty == False:
+            df.loc[df['cod_orgao'].isin(cod_orgao_fonte_consulta_especificidade.keys()), 'Consulta cod_orgao'] = df.loc[df['cod_orgao'].isin(cod_orgao_fonte_consulta_especificidade.keys())].apply(lambda row: self._query(id_veiculo=row['id_veiculo'], fonte_consulta=cod_orgao_fonte_consulta_especificidade[row['cod_orgao']], data_hora=self.date), axis=1)
+
+
+        if df.loc[(~df['cod_orgao'].isin(cod_orgao_fonte_consulta_especificidade.keys())) & (df['fonteConsultaCodOrgao'].isna() == False)].empty == False:
+            self.status_report.emit('Verificando as consultas no Código do órgão autuador')
+            df.loc[(df['fonteConsultaCodOrgao'].isna() == False) & (~df['cod_orgao'].isin(cod_orgao_fonte_consulta_especificidade.keys())), 'Consulta cod_orgao'] = df.loc[(df['fonteConsultaCodOrgao'].isna() == False) & (~df['cod_orgao'].isin(cod_orgao_fonte_consulta_especificidade.keys()))].apply(lambda row: self._query(id_veiculo=row['id_veiculo'], fonte_consulta=row['fonteConsultaCodOrgao'], data_hora=self.date), axis=1)
+            df['Consulta cod_orgao'].loc[df['Consulta cod_orgao'].isna() == True] = 'Sem Consulta'
+        else:
+            df['Consulta cod_orgao'] = 'Não consultamos este órgão autuador'
+        
+
+        if df.loc[df['fonteConsulta'].isna() == False].empty == False:
+            self.status_report.emit('Verificando as consultas na fonte consulta')
+            df['Consulta fonteConsulta'] = df.loc[df['fonteConsulta'].isna() == False].apply(lambda row: self._query(id_veiculo=row['id_veiculo'], fonte_consulta=row['fonteConsulta'], data_hora=self.date), axis=1)
+            df['Consulta fonteConsulta'].loc[df['Consulta fonteConsulta'].isna() == True] = 'Sem Consulta'
+        else:
+            df['Consulta fonteConsulta'] = 'Sem fonte consulta'
+
+        if df.loc[df['fonteConsultaBoleto'].isna() == False].empty == False:
+            self.status_report.emit('Verificando as consultas na fonte consulta Boleto')
+            df['Consulta fonteConsultaBoleto'] = df.loc[df['fonteConsultaBoleto'].isna() == False].apply(lambda row: self._query(id_veiculo=row['id_veiculo'], fonte_consulta=row['fonteConsultaBoleto'], data_hora=self.date), axis=1)
+            df['Consulta fonteConsultaBoleto'].loc[df['Consulta fonteConsultaBoleto'].isna() == True] = 'Sem Consulta'
+        else:
+            df['Consulta fonteConsultaBoleto'] = 'Sem fonte consulta'
+        
+        if self.output.strip() != '' and self.file_name.strip() != '':
+            try:
+                self.status_report.emit('Criando o relatório')
+                write_spreadsheet(df_result=df, output=self.output, file_name=self.file_name)
+                self.terminated.emit('Relatório criado')
+            except Exception:
+                self.terminated.emit('Deu ruim na hora de tentar criar o relatório')
+                print('Deu ruim')
+
 
 
 

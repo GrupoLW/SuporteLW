@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 VENV_DIR=".venv"
 
@@ -16,6 +16,8 @@ source $VENV_DIR/bin/activate
 
 echo "📦 Atualizando pip..."
 pip install --upgrade pip
+pip install mysql
+pip install mysqlclient
 
 if [ -f "requirements.txt" ]; then
     echo "📂 Instalando dependências do requirements.txt..."
