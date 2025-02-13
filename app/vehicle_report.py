@@ -54,35 +54,28 @@ class VehicleReport(Report, QObject):
         original_columns = list(self.table_read.columns)
         df_table_read_info = self.table_read
         
-        #self.process.standard_reading()
 
         self.status_report.emit('Leitura da planilha finalizada...')
 
         
-        #Informações veículos
         df_result = pd.DataFrame()
         database_info = pd.DataFrame()
 
 
         print('DF antes da consulta\n', df_table_read_info)
-        #Se for fornecido uma coluna Placa
         if 'Placa Fornecida' in original_columns:
             self.status_report.emit('Consultando pela placa...')
-            #Lista de placas para a consulta
             placas = df_table_read_info.loc[~df_table_read_info['Placa Fornecida'].isna(), 'Placa Fornecida'].to_list()
         
-            #Consulta no banco de dados
             database_info = find_vehicle_in_db(self.con, 'placa', placas)
             database_info['Análise Veículo'] = 'Encontrado pela Placa'
 
             
 
-            #Merge
             df_table_read_info = pd.merge(left=df_table_read_info, right=database_info, how='left', left_on='Placa Fornecida', right_on='placa')
 
             
             
-            #Concatenando Resultados
             df_result = concatenate_database_results(df_result, df_table_read_info)
 
             print(df_result)
@@ -96,25 +89,20 @@ class VehicleReport(Report, QObject):
 
             print('Resultado\n', df_result)
             print('Para consulta\n', df_table_read_info)
-            #Se não encontrar pelo padrão fornecido -> fazer a conversão
             if df_table_read_info.empty == False:
                 self.status_report.emit('Invertendo as placas e consultando novamente ...')
                 df_table_read_info['Placa Fornecida'] = df_table_read_info['Placa Fornecida'].apply(Vehicle.static_reverse_the_plate_pattern)
-                #Lista de placas Invertidas para consulta
                 placas = df_table_read_info.loc[~df_table_read_info['Placa Fornecida'].isna(), 'Placa Fornecida'].to_list()
 
                 try:
-                    #Consulta no banco de dados
                     database_info = find_vehicle_in_db(self.con, 'placa', placas)
                     database_info['Análise Veículo'] = 'Encontrado pela Placa em outro padrão'
                 except Exception:
                     time.sleep(2)
 
-                #Merge
                 df_table_read_info = pd.merge(left=df_table_read_info, right=database_info, how='left', left_on='Placa Fornecida', right_on='placa')
 
 
-                #Concatenando Resultados
                 df_result = concatenate_database_results(df_result, df_table_read_info)
                 
                 df_table_read_info = df_result.loc[df_result['id_veic'].isna()][original_columns]
@@ -125,27 +113,21 @@ class VehicleReport(Report, QObject):
                 print('Resultado\n', df_result)
                 print('Para consulta\n', df_table_read_info)
 
-        #Se for fornecido renavam
         if 'Renavam Fornecido' in original_columns:
             self.status_report.emit('Consultando pelo renavam ...')
-            #Tratando a coluna dos renavan para ter 11 digitos
             df_table_read_info['Renavam Fornecido'] = df_table_read_info['Renavam Fornecido'].apply(Vehicle.renavam_with_11_digits)
             
-            #Lista de renavam com 11 digitos
             list_renavam = df_table_read_info.loc[~df_table_read_info['Renavam Fornecido'].isna(), 'Renavam Fornecido'].to_list()
 
             try:
-                #Consulta no banco de dados
                 database_info = find_vehicle_in_db(self.con, 'renavam', list_renavam)
                 database_info['Análise Veículo'] = 'Encontrado pelo Renavam'
             except Exception:
                 time.sleep(2)
 
 
-            #Merge
             df_table_read_info = pd.merge(left=df_table_read_info, right=database_info, how='left', left_on='Renavam Fornecido', right_on='renavam')
 
-            #Concatenando Resultados
             df_result = concatenate_database_results(df_result, df_table_read_info)
             df_table_read_info = df_result.loc[df_result['id_veic'].isna()][original_columns]
 
@@ -156,24 +138,19 @@ class VehicleReport(Report, QObject):
             print('Para consulta\n', df_table_read_info)
         
 
-        #Se for fornecido chassi
         if 'Chassi Fornecido' in original_columns:
             self.status_report.emit('Consultando pelo Chassi ...')
 
-            #Lista de Chassi
             list_chassi = df_table_read_info.loc[~df_table_read_info['Chassi Fornecido'].isna(), 'Chassi Fornecido'].to_list()
 
             try:
-                #Consulta no banco de dados
                 database_info = find_vehicle_in_db(self.con, 'chassi', list_chassi)
                 database_info['Análise Veículo'] = 'Encontrado pelo Chassi'
             except Exception:
                 time.sleep(2)
 
-            #Merge
             df_table_read_info = pd.merge(left=df_table_read_info, right=database_info, how='left', left_on='Chassi Fornecido', right_on='chassi')
 
-            #Concatenando Resultados 
             df_result = concatenate_database_results(df_result, df_table_read_info)
 
             print('Resultado\n', df_result)

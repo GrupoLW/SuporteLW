@@ -189,7 +189,6 @@ class AnalyseUF(QObject):
 
         df = self.search_vehicle_in_db(df=df, param=self.plates)
 
-        #Invertendo a placa
         if df.loc[df['placa_lw'].isna()].empty == False:
             df.loc[df['placa_lw'].isna(), 'Placa'] = df.loc[df['placa_lw'].isna(), 'Placa'].apply(lambda plate: Vehicle.static_reverse_the_plate_pattern(plate))
             plates = df.loc[df['placa_lw'].isna(), 'Placa'].to_list()

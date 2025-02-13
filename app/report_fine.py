@@ -18,14 +18,11 @@ class ReportFine (Report):
         for row in self.table_read.values:
             row_report = []
 
-            #Ler o veiculo
             vehicle_read = None
             vehicle_read = self.process.standard_vehicle_storage(row, row_report)
 
-            #Ler a multa
             ait_read = self.process.standard_fine_storage(row, row_report)
 
-            # A tratativa dos dados fornecidos
             status_vehicle = ''
             status_multa = ''
             vehicle_in_db = None
@@ -33,7 +30,6 @@ class ReportFine (Report):
             fine_in_db = None
 
 
-            # Buscar no banco o veículo
             if vehicle_read is None:
                 status_vehicle = 'Dados do veículo incorreto'
             else:
@@ -45,7 +41,6 @@ class ReportFine (Report):
                     status_vehicle = 'Veículo não cadastrado'
 
             row_report.append(status_vehicle)
-            #Análise multa
             if ait_read is None:
                 status_multa = 'AIT não fornecido'
             elif ait_read is not None and id_vehicle is not None:
@@ -68,7 +63,6 @@ class ReportFine (Report):
                 while len(row_report) < len(self.report_column_names):
                     row_report.append('')
 
-            #print('row', row_report)
             self.table_values.append(row_report)
 
         print('Colunas', self.report_column_names)

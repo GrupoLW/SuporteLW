@@ -75,7 +75,6 @@ class QueryGeneratorAutuador(QueryFormat, QObject):
 
         param_cod_orgao = df_result.loc[~df_result['estado'].isin(consulta_uf_de_fora_centralizadores)]['parametro_cod_orgao'].unique()
 
-        # Consulta pelo código do órgão
         for param in param_cod_orgao:
             if param is None or param in param_ignore:
                 continue
@@ -93,14 +92,11 @@ class QueryGeneratorAutuador(QueryFormat, QObject):
                     else:
                         self.consultas[param] = self.consultas[especificidade]
 
-        # Gerando o código 
         for param, plates in self.consultas.items():
             comando_plates = self.remover_caracteres_especiais(str(plates))
             
-            # Adiciona o parâmetro "--capcloud" se o nome do órgão contiver "prefeitura"
             extra_param = '--capcloud' if 'prefeitura' in param.lower() else ''
 
-            # Adiciona o parâmetro "--threads=1" se o parâmetro for "pr" (Paraná)
             threads_param = '--threads=1' if param == 'pr' else ''
 
             if self.recibo:
@@ -168,7 +164,6 @@ class QueryGeneratorUF(QueryFormat, QObject):
 
         df = self.search_vehicle_in_db(df=df, param=self.plates)
 
-        #Invertendo a placa
         if df.loc[df['placa_lw'].isna()].empty == False:
             df.loc[df['placa_lw'].isna(), 'Placa'] = df.loc[df['placa_lw'].isna(), 'Placa'].apply(lambda plate: Vehicle.static_reverse_the_plate_pattern(plate))
             plates = df.loc[df['placa_lw'].isna(), 'Placa'].to_list()
@@ -195,10 +190,8 @@ class QueryGeneratorUF(QueryFormat, QObject):
 
         for param, plates in self.consultas.items():
             comando_plates = self.remover_caracteres_especiais(str(plates))
-            # Adiciona o parâmetro "--capcloud" se o nome do órgão contiver "prefeitura"
             extra_param = '--capcloud' if 'prefeitura' in param.lower() else ''
 
-            # Adiciona o parâmetro "--threads=1" se o parâmetro for "pr" (Paraná)
             threads_param = '--threads=1' if param == 'pr' else ''
 
             if self.recibo:
@@ -275,7 +268,6 @@ class QueryGeneratorUFWithID(QueryFormat, QObject):
 
         uf_veic_list = df_result['uf_veic'].unique()
 
-        #Consulta pela UF do veículo
         for uf in uf_veic_list:
             if uf == None:
                 continue
@@ -287,13 +279,10 @@ class QueryGeneratorUFWithID(QueryFormat, QObject):
                 else:
                     self.consultas[param_uf] = set(df_result.loc[df_result['uf_veic'] == uf]['placa'].to_list())
 
-        #Gerando o código 
         for param, plates in self.consultas.items():
             comando_plates = self.remover_caracteres_especiais(str(plates))
-            # Adiciona o parâmetro "--capcloud" se o nome do órgão contiver "prefeitura"
             extra_param = '--capcloud' if 'prefeitura' in param.lower() else ''
 
-            # Adiciona o parâmetro "--threads=1" se o parâmetro for "pr" (Paraná)
             threads_param = '--threads=1' if param == 'pr' else ''
 
             if self.recibo:
@@ -366,7 +355,6 @@ class QueryGeneratorUFAutuador(QueryFormat, QObject):
 
         uf_veic_list = df_result['uf_veic'].unique()
 
-        #Consulta pela UF do veículo
         for uf in uf_veic_list:
             if uf == None:
                 continue
@@ -381,7 +369,6 @@ class QueryGeneratorUFAutuador(QueryFormat, QObject):
         estado_uf = df_result.loc[~df_result['parametro_cod_orgao'].isin(federal_agencies)]['estado'].unique()
 
 
-        #Consulta pelo estado da multa
         for uf in estado_uf:
             if uf == None:
                 continue
@@ -395,7 +382,6 @@ class QueryGeneratorUFAutuador(QueryFormat, QObject):
 
         param_cod_orgao = df_result.loc[~df_result['estado'].isin(consulta_uf_de_fora_centralizadores)]['parametro_cod_orgao'].unique()
 
-        #Consulta pelo codigo do orgao
         for param in param_cod_orgao:
             if param == None or param in param_ignore:
                 continue
@@ -408,7 +394,6 @@ class QueryGeneratorUFAutuador(QueryFormat, QObject):
 
         param_fonte_consulta = df_result['parametro_fonte_consulta'].unique()
 
-        #consulta pelo parametro de Fonte Consulta
         for param in param_fonte_consulta:
             if param == None or param in param_ignore:
                 continue
@@ -420,7 +405,6 @@ class QueryGeneratorUFAutuador(QueryFormat, QObject):
 
         param_fonte_consulta_boleto = df_result['parametro_fonte_consulta_boleto'].unique()
 
-        #Consulta pelo parametro Fonte Consulta Boleto
         for param in param_fonte_consulta_boleto:
             if param == None or param in param_ignore:
                 continue
@@ -440,13 +424,10 @@ class QueryGeneratorUFAutuador(QueryFormat, QObject):
                         self.consultas[param] = self.consultas[especificidade]
                     
 
-        #Gerando o código 
         for param, plates in self.consultas.items():
             comando_plates = self.remover_caracteres_especiais(str(plates))
-            # Adiciona o parâmetro "--capcloud" se o nome do órgão contiver "prefeitura"
             extra_param = '--capcloud' if 'prefeitura' in param.lower() else ''
 
-            # Adiciona o parâmetro "--threads=1" se o parâmetro for "pr" (Paraná)
             threads_param = '--threads=1' if param == 'pr' else ''
 
             if self.recibo:

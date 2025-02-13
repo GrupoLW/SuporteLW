@@ -223,7 +223,7 @@ order by `Análise mineração` asc;
             columns = [desc[0] for desc in cursor.description]
 
             df = pd.DataFrame(rows, columns=columns)
-            df = df.where(pd.notnull(df), "")  # Substitui valores None por strings vazias
+            df = df.where(pd.notnull(df), "")
 
             for col in ["historico", "endereco", "descricaoArtigo", "cidade"]:
                 if col in df.columns:

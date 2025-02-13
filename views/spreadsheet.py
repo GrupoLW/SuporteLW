@@ -17,7 +17,6 @@ def search_for_data(table: pd.DataFrame, data_sought: str):
         
 
 def concatenate_database_results(df_result, df_db):
-    #Concatenar resultados
     if df_result.empty == False:
         frames = [df_result, df_db]
         df_result = pd.concat(frames, ignore_index=True)

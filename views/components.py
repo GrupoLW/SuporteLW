@@ -2,13 +2,12 @@ from PySide6.QtWidgets import QLineEdit, QPushButton, QLabel, QWidget, QFileDial
 from PySide6.QtCore import Qt
 
 
-# Colors
 PRIMARY_COLOR = '#1e81b0'
 DARKER_PRIMARY_COLOR = '#16658a'
 DARKEST_PRIMARY_COLOR = '#115270'
 
 
-# Sizing
+
 BIG_FONT_SIZE = 15
 MEDIUM_FONT_SIZE = 12
 SMALL_FONT_SIZE = 10
@@ -47,7 +46,7 @@ class DirectoryButton(QPushButton):
         options |= QFileDialog.ShowDirsOnly
         caminho_arquivo, _ = QFileDialog.getOpenFileName(self, "Selecione um arquivo", "", "Arquivos Excel (*.xlsx *.xls *.ods)", options=options)
 
-        if caminho_arquivo:  # Verificar se o arquivo foi selecionado
+        if caminho_arquivo:
             self.directory_line.setText(caminho_arquivo)
 
     def search_directory(self):
@@ -55,11 +54,11 @@ class DirectoryButton(QPushButton):
         options |= QFileDialog.ShowDirsOnly
         directory = QFileDialog.getExistingDirectory(self, "Selecione um diretório", options=options)
 
-        if directory:  # Verificar se o diretório foi selecionado
+        if directory:
             self.directory_line.setText(directory)
 
     def _connectButtonClicked(self, button, slot):
-        button.clicked.connect(slot)  # type: ignore
+        button.clicked.connect(slot)
 
 
 class DirectoryTitle(QLabel):

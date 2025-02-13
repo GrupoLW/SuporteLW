@@ -19,7 +19,7 @@ style_button = '''
 WIDHT_WINDOW = 500
 HEIGHT_WINDOW = 240
 
-USERNAME_FILE = ".username.json"  # Nome do arquivo para salvar o nome de usuário
+USERNAME_FILE = ".username.json"
 
 
 class ServicesWindow(QWidget):
@@ -33,17 +33,14 @@ class ServicesWindow(QWidget):
         self.setGeometry(300, 300, 600, 400)
         self.center_window()
 
-        # Serviços
         self.button_reports_window = QPushButton('Gerador de relatórios')
         self.button_query_generator = QPushButton('Gerador de consultas')
         self.button_analyse_queries = QPushButton('Analisar Consultas')
 
-        # Adicionar ao layout
         self.layout.addWidget(self.button_reports_window)
         self.layout.addWidget(self.button_query_generator)
         self.layout.addWidget(self.button_analyse_queries)
 
-        # Estiliza
         self.button_reports_window.setMinimumSize(400, 100)
         self.button_query_generator.setMinimumSize(400, 100)
         self.button_analyse_queries.setMinimumSize(400, 100)
@@ -51,7 +48,6 @@ class ServicesWindow(QWidget):
         self.button_query_generator.setStyleSheet(style_button)
         self.button_analyse_queries.setStyleSheet(style_button)
 
-        # Ação dos botões
         self.button_query_generator.clicked.connect(self.to_enter_in_generator)
         self.button_reports_window.clicked.connect(self.to_enter_in_reports_window)
         self.button_analyse_queries.clicked.connect(self.to_enter_in_analyse_queries)
@@ -93,13 +89,11 @@ class DBAccessWindow(QMainWindow):
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.keep_connection_alive)
 
-        # Configuração do Layout básico
         self.cw = QWidget()
         self.cw_layout = QVBoxLayout()
         self.cw.setLayout(self.cw_layout)
         self.setCentralWidget(self.cw)
 
-        # Labels e campos de entrada
         self.user_label = QLabel('User: ')
         self.user_line = QLineEdit()
         self.user_line.setPlaceholderText('Digite seu User Name...')
@@ -109,18 +103,14 @@ class DBAccessWindow(QMainWindow):
         self.pass_line.setPlaceholderText('Digite sua senha...')
         self.pass_line.setEchoMode(QLineEdit.Password)
 
-        # Checkbox para lembrar acesso
         self.remember_me_checkbox = QCheckBox('Lembrar acesso (usuário)')
 
-        # Label de erro
         self.error_label = QLabel('')
 
-        # Botão de login
         self.login_button = QPushButton('Login')
         self.login_button.setStyleSheet(style_button)
         self.login_button.clicked.connect(self.login)
 
-        # Adicionando os widgets ao layout
         self.cw_layout.addWidget(self.user_label)
         self.cw_layout.addWidget(self.user_line)
         self.cw_layout.addWidget(self.password)
@@ -129,12 +119,10 @@ class DBAccessWindow(QMainWindow):
         self.cw_layout.addWidget(self.error_label)
         self.cw_layout.addWidget(self.login_button)
 
-        # Configurações gerais
         self.setWindowTitle('Acesso ao Banco de dados')
         self.adjustFixedSize()
         self.center_window()
 
-        # Carregar o nome de usuário salvo (se existir)
         self.load_username()
 
     def center_window(self):
@@ -170,13 +158,13 @@ class DBAccessWindow(QMainWindow):
                 self.error_label.setText(f"Erro ao conectar: {err}")
 
     def save_username(self):
-        """Salva apenas o nome de usuário no arquivo local."""
+
         username = self.user_line.text()
         with open(USERNAME_FILE, "w") as f:
             json.dump({"username": username}, f)
 
     def load_username(self):
-        """Carrega apenas o nome de usuário do arquivo local."""
+
         if os.path.exists(USERNAME_FILE):
             with open(USERNAME_FILE, "r") as f:
                 data = json.load(f)

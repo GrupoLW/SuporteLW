@@ -26,4 +26,6 @@ fi
 
 echo "✅ Setup concluído! O ambiente virtual está ativado automaticamente."
 
+export QT_QPA_PLATFORM_PLUGIN_PATH=$(python3 -c "import PySide6.QtCore; print(PySide6.QtCore.QLibraryInfo.path(PySide6.QtCore.QLibraryInfo.PluginsPath))")
+
 exec bash

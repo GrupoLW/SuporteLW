@@ -3,10 +3,6 @@ from models.db_model import execute_the_query
 import pandas as pd
 
 
-
-
-
-#Buscar o veículo no banco através de uma informação em especifico, que será concatenado entre '' e vírgula.  Utilizado para várias buscas de uma vez.
 def find_vehicle_in_db(connection, column_name_in_db: str, list_data : list):
     placeholder_sequence = ', '.join(['%s'] * len(list_data))
     query = f"SELECT v.id as id_veic, v.placa, v.placaMercosul, v.renavam, v.chassi, v.uf_veic, case when v.status = 0 then 'ATIVO' when v.status = 5 then 'Erro no Cadastro' else 'INATIVO' end as status FROM veiculos v WHERE v.{column_name_in_db} IN ({placeholder_sequence})"
@@ -19,18 +15,11 @@ def find_vehicle_in_db(connection, column_name_in_db: str, list_data : list):
     return results
 
 
-
-
-
-
-#Query de relatório: Buscar os dados básicos do veículo
 def get_the_vehicle_data_in_db(connection, id_veiculo):
     result = execute_the_query(connection, f"""select v.id, v.placa, v.placaMercosul, v.renavam, v.chassi, v.uf_veic from veiculos v where v.id = '{id_veiculo}';""")
     return result
 
 
-
-# Buscar o veículo no Banco
 def find_vehicle_in_db_with_Vehicle(connection ,vehicle: Vehicle):
     result = search_for_the_old_plate_pattern(connection, vehicle.plate_old_pattern)
     if result is None:

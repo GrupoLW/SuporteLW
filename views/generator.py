@@ -5,7 +5,7 @@ from PySide6.QtWidgets import (
 )
 
 from app.query_generator import QueryGeneratorUFAutuador, QueryGeneratorUF, QueryGeneratorAutuador, QueryGeneratorUFWithID
-from app.query_info import fetch_orgaos_homologados_query  # Nova importação para buscar a query
+from app.query_info import fetch_orgaos_homologados_query
 
 
 class QueryGenerator(QWidget):
@@ -17,24 +17,20 @@ class QueryGenerator(QWidget):
 
         self.setWindowTitle('Gerador de consultas')
         self.setGeometry(300, 300, 800, 600)
-        self.center_window()  # Centraliza a janela
+        self.center_window()
 
-        # Configuração padrão
         self.layout = QVBoxLayout()
         self.setLayout(self.layout)
 
-        # Containers
         self.header = QWidget()
         self.input_text_area = QTextEdit()
         self._actions = QWidget()
         self.output_text_area = QTextEdit()
         self.status_bar = QLabel('')
 
-        # Layouts containers
         self.layout_header = QGridLayout()
         self.layout_actions = QGridLayout()
 
-        # Add layouts
         self.layout.addWidget(self.header)
         self.layout.addWidget(self.input_text_area)
         self.layout.addWidget(self._actions)
@@ -44,7 +40,6 @@ class QueryGenerator(QWidget):
         self.header.setLayout(self.layout_header)
         self._actions.setLayout(self.layout_actions)
 
-        # Instância dos containers
         self._make_header()
         self._make_actions()
 
@@ -56,44 +51,36 @@ class QueryGenerator(QWidget):
         self.move(window_geometry.topLeft())
 
     def _make_header(self):
-        # Botão Voltar para o menu principal
         self.back_button = QPushButton('Voltar para o Menu Principal')
         self.back_button.clicked.connect(self.go_to_main_menu)
         self.layout_header.addWidget(self.back_button, 0, 0, 1, 2)
 
-        # Label recibo
         self.recibo_line = QLineEdit()
         self.layout_header.addWidget(self.recibo_line, 1, 1)
         self.recibo_line.setPlaceholderText('Recibo')
 
-        # Dias
         self.line_days = QLineEdit()
         self.layout_header.addWidget(self.line_days, 1, 2)
         self.line_days.setPlaceholderText('Dias')
 
     def _make_actions(self):
-        # Checkboxes
         self.check_plates = QCheckBox('Placas')
         self.check_ID = QCheckBox('ID_multa')
         self.check_client_id = QCheckBox('ID_cliente')
 
-        # Label e campo para ID_cliente
         self.client_id_label = QLabel('Digite o ID:')
         self.client_id_input = QLineEdit()
-        self.client_id_label.setFixedSize(250, 30)  # Tamanho fixo da label
+        self.client_id_label.setFixedSize(250, 30)
         self.client_id_input.setFixedSize(250, 30)
-        self.client_id_input.setEnabled(False)  # Desabilitado inicialmente
+        self.client_id_input.setEnabled(False)
 
-        # Adiciona as checkboxes (uma embaixo da outra)
         self.layout_actions.addWidget(self.check_plates, 0, 0)
         self.layout_actions.addWidget(self.check_ID, 1, 0)
         self.layout_actions.addWidget(self.check_client_id, 2, 0)
 
-        # Adiciona a label e o campo de entrada para ID_cliente
         self.layout_actions.addWidget(self.client_id_label, 2, 1)
         self.layout_actions.addWidget(self.client_id_input, 2, 2)
 
-        # Botões organizados em grade (2x2)
         self.button_consulta_uf = QPushButton('Consulta UF')
         self.button_consulta_autuador = QPushButton('Órgão Autuador')
         self.button_consulta_autuador_mais_uf = QPushButton('UF + autuador')
@@ -104,20 +91,17 @@ class QueryGenerator(QWidget):
         self.layout_actions.addWidget(self.button_consulta_autuador_mais_uf, 0, 2)
         self.layout_actions.addWidget(self.button_orgaos_homologados, 1, 2)
 
-        # Conecta os checkboxes para ativar/desativar botões e limpar resultados
         self.check_plates.stateChanged.connect(self._handle_checkbox_selection)
         self.check_ID.stateChanged.connect(self._handle_checkbox_selection)
         self.check_client_id.stateChanged.connect(self._handle_checkbox_selection)
 
-        # Conecta os botões às suas respectivas funções
         self.button_consulta_uf.clicked.connect(self._query_uf)
         self.button_consulta_autuador.clicked.connect(self._query_autuador)
         self.button_consulta_autuador_mais_uf.clicked.connect(self._query_uf_e_autuador)
         self.button_orgaos_homologados.clicked.connect(self._query_orgaos_homologados)
 
     def _handle_checkbox_selection(self):
-        """Controla quais botões e campos ficam habilitados ao selecionar uma checkbox."""
-        # Desativa tudo inicialmente
+
         self.output_text_area.clear()
         self.client_id_input.setEnabled(False)
         self.button_consulta_uf.setEnabled(False)
@@ -125,7 +109,6 @@ class QueryGenerator(QWidget):
         self.button_consulta_autuador_mais_uf.setEnabled(False)
         self.button_orgaos_homologados.setEnabled(False)
 
-        # Lógica de habilitação
         if self.check_plates.isChecked():
             self.check_ID.blockSignals(True)
             self.check_client_id.blockSignals(True)
@@ -156,13 +139,10 @@ class QueryGenerator(QWidget):
             self.client_id_input.setEnabled(True)
             self.button_orgaos_homologados.setEnabled(True)
 
-            # Certifique-se de conectar apenas uma vez:
             self.check_plates.toggled.connect(self._handle_checkbox_selection)
             self.check_ID.toggled.connect(self._handle_checkbox_selection)
             self.check_client_id.toggled.connect(self._handle_checkbox_selection)
 
-
-            # Certifique-se de conectar o estado dos checkboxes ao manipulador:
             self.check_plates.toggled.connect(self._handle_checkbox_selection)
             self.check_ID.toggled.connect(self._handle_checkbox_selection)
             self.check_client_id.toggled.connect(self._handle_checkbox_selection)
@@ -207,7 +187,7 @@ class QueryGenerator(QWidget):
             cursor.execute(query)
             results = cursor.fetchall()
 
-            commands = [row[6] for row in results]  # Pega o comando de consulta
+            commands = [row[6] for row in results]
             self.output_text_area.setPlainText('\n'.join(commands))
             self.status_bar.setText(f'{len(commands)} comandos gerados com sucesso.')
         except Exception as e:

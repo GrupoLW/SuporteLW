@@ -21,24 +21,20 @@ class AnalyseQueries(QWidget):
         self.main_window = main_window
         self.setWindowTitle('Análise de consultas')
         self.setGeometry(300, 300, 800, 600)
-        self.center_window()  # Centraliza a janela
+        self.center_window()
         self.gerador_de_consultas = None
 
-        # Configuração padrão
         self.layout = QVBoxLayout()
         self.setLayout(self.layout)
 
-        # Containers
         self.header = QWidget()
         self.input_text_area = QTextEdit()
         self._actions = QWidget()
         self.status_bar = QLabel('')
 
-        # Layouts containers
         self.layout_header = QGridLayout()
         self.layout_actions = QGridLayout()
 
-        # Add layouts
         self.layout.addWidget(self.header)
         self.layout.addWidget(self.input_text_area)
         self.layout.addWidget(self._actions)
@@ -47,7 +43,6 @@ class AnalyseQueries(QWidget):
         self.header.setLayout(self.layout_header)
         self._actions.setLayout(self.layout_actions)
 
-        # Instância dos containers
         self._make_header()
         self._make_actions()
 
@@ -59,14 +54,12 @@ class AnalyseQueries(QWidget):
         self.move(window_geometry.topLeft())
 
     def _make_header(self):
-        # Botão Voltar para o menu principal
         self.back_button = QPushButton('Voltar para o Menu Principal')
         self.back_button.setMinimumSize(250, 30)
         self.back_button.setMaximumSize(100, 30)
         self.back_button.clicked.connect(self.go_to_main_menu)
         self.layout_header.addWidget(self.back_button, 0, 0, 1, 3)
 
-        # Output
         self.output_directory_title = DirectoryTitle('Output:')
         self.output_directory_line = DirectoryLine()
         self.output_directory_button = DirectoryButton('...', 30, 30, self.output_directory_line, False)
@@ -80,34 +73,26 @@ class AnalyseQueries(QWidget):
         self.layout_header.addWidget(self.file_name, 1, 4)
 
     def _make_actions(self):
-        # Check box 1 e label
         self.check_plates = QCheckBox('Placas')
         self.layout_actions.addWidget(self.check_plates, 0, 1)
-        # Check box 2 e label
         self.check_ID = QCheckBox('ID_multa')
         self.layout_actions.addWidget(self.check_ID, 0, 2)
-        # QGroup
         self.box_group = QButtonGroup()
         self.box_group.addButton(self.check_plates)
         self.box_group.addButton(self.check_ID)
-        # Data
         self.line_days = QLineEdit()
         self.line_days.setPlaceholderText('Data: yyyy-mm-dd')
         self.layout_actions.addWidget(self.line_days, 0, 3)
-        # Button 1
         self.button_consulta_uf = QPushButton('Emplacamento')
         self.layout_actions.addWidget(self.button_consulta_uf, 0, 4)
         self.button_consulta_uf.setStyleSheet(style_button)
-        # Button 2
         self.button_consulta_autuador = QPushButton('Autuador')
         self.layout_actions.addWidget(self.button_consulta_autuador, 0, 5)
         self.button_consulta_autuador.setStyleSheet(style_button)
-        # Button 3
         self.button_consulta_autuador_mais_uf = QPushButton('All')
         self.layout_actions.addWidget(self.button_consulta_autuador_mais_uf, 0, 6)
         self.button_consulta_autuador_mais_uf.setStyleSheet(style_button)
 
-        # Ações dos botões
         self.button_consulta_uf.clicked.connect(self._query_uf)
         self.button_consulta_autuador_mais_uf.clicked.connect(self._query_all)
         self.button_consulta_autuador.clicked.connect(self._query_autuador)
@@ -132,7 +117,6 @@ class AnalyseQueries(QWidget):
             self.analyse = AnalyseAll(connection=self.con, output=self.output_directory_line.text(), file_name=self.file_name.text(), id_multas=lista, date=self.line_days.text())
             self._thread = QThread()
 
-            # Configuração padrão da Thread
             self.analyse.moveToThread(self._thread)
             self._thread.started.connect(self.analyse.make_query)
             self.analyse.terminated.connect(self._thread.quit)
@@ -158,6 +142,5 @@ if __name__ == '__main__':
 
     window = AnalyseQueries(connection=None, main_window=None)
 
-    # Execução da aplicação
     window.show()
     app.exec()
