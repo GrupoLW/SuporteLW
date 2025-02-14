@@ -253,7 +253,7 @@ order by `Análise mineração` asc;
             for col_idx, value in enumerate(row):
                 value = str(value) if value is not None else ""
                 if df.columns[col_idx] in ["historico", "endereco", "descricaoArtigo", "cidade"]:
-                    value = value.replace("\n", " ").replace("\r", " ").strip()  # Remove caracteres problemáticos
+                    value = value.replace("\n", " ").replace("\r", " ").strip()
                 self.results_table.setItem(row_idx, col_idx, QTableWidgetItem(value))
 
     def copy_table_content(self, include_header=False):
