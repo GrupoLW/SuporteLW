@@ -33,7 +33,7 @@ class ReportsWindow(QWidget):
         self.id_input = QTextEdit()
         layout.addWidget(self.id_input)
 
-        self.generate_button = QPushButton("Gerar Relatório")
+        self.generate_button = QPushButton("Gerar Relatório!")
         self.generate_button.clicked.connect(self.generate_report)
         layout.addWidget(self.generate_button)
 

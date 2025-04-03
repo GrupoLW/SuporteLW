@@ -1,11 +1,13 @@
 import sys
-from PySide6.QtGui import QScreen
+from PySide6.QtGui import QScreen, QStandardItemModel, QStandardItem
 from PySide6.QtWidgets import (
-    QApplication, QWidget, QVBoxLayout, QTextEdit, QGridLayout, QCheckBox, QLineEdit, QPushButton, QLabel, QButtonGroup
+    QApplication, QWidget, QVBoxLayout, QTextEdit, QGridLayout, QCheckBox, QLineEdit, 
+    QPushButton, QLabel, QButtonGroup, QComboBox, QStyledItemDelegate
 )
+from PySide6.QtCore import Qt
 
-from app.query_generator import QueryGeneratorUFAutuador, QueryGeneratorUF, QueryGeneratorAutuador, QueryGeneratorUFWithID
-from app.query_info import fetch_orgaos_homologados_query
+from app.query_generator import QueryGeneratorUFAutuador, QueryGeneratorUF, QueryGeneratorAutuador, QueryGeneratorUFWithID, QueryGeneratorUFPrefeituras
+from app.query_info import fetch_orgaos_homologados_query, prefeituras_disponiveis
 
 
 class QueryGenerator(QWidget):
@@ -68,6 +70,8 @@ class QueryGenerator(QWidget):
         self.check_ID = QCheckBox('ID_multa')
         self.check_client_id = QCheckBox('ID_cliente')
 
+        self._make_prefeituras_combo()
+        
         self.client_id_label = QLabel('Digite o ID:')
         self.client_id_input = QLineEdit()
         self.client_id_label.setFixedSize(250, 30)
@@ -76,10 +80,9 @@ class QueryGenerator(QWidget):
 
         self.layout_actions.addWidget(self.check_plates, 0, 0)
         self.layout_actions.addWidget(self.check_ID, 1, 0)
-        self.layout_actions.addWidget(self.check_client_id, 2, 0)
-
-        self.layout_actions.addWidget(self.client_id_label, 2, 1)
-        self.layout_actions.addWidget(self.client_id_input, 2, 2)
+        self.layout_actions.addWidget(self.check_client_id, 3, 0)
+        self.layout_actions.addWidget(self.client_id_label, 3, 1)
+        self.layout_actions.addWidget(self.client_id_input, 3, 2)
 
         self.button_consulta_uf = QPushButton('Consulta UF')
         self.button_consulta_autuador = QPushButton('Órgão Autuador')
@@ -87,9 +90,10 @@ class QueryGenerator(QWidget):
         self.button_orgaos_homologados = QPushButton('Órgãos Homologados')
 
         self.layout_actions.addWidget(self.button_consulta_uf, 0, 1)
-        self.layout_actions.addWidget(self.button_consulta_autuador, 1, 1)
-        self.layout_actions.addWidget(self.button_consulta_autuador_mais_uf, 0, 2)
-        self.layout_actions.addWidget(self.button_orgaos_homologados, 1, 2)
+        self.layout_actions.addWidget(self.prefeituras_combo, 0, 2)
+        self.layout_actions.addWidget(self.button_consulta_autuador, 2, 1)
+        self.layout_actions.addWidget(self.button_consulta_autuador_mais_uf, 2, 2)
+        self.layout_actions.addWidget(self.button_orgaos_homologados, 3, 1)
 
         self.check_plates.stateChanged.connect(self._handle_checkbox_selection)
         self.check_ID.stateChanged.connect(self._handle_checkbox_selection)
@@ -100,14 +104,27 @@ class QueryGenerator(QWidget):
         self.button_consulta_autuador_mais_uf.clicked.connect(self._query_uf_e_autuador)
         self.button_orgaos_homologados.clicked.connect(self._query_orgaos_homologados)
 
-    def _handle_checkbox_selection(self):
+    def _make_prefeituras_combo(self):
+        self.prefeituras_combo = QComboBox()
+        self.prefeituras_combo.setEnabled(False)
+        self.prefeituras_combo.setEditable(True)
+        self.prefeituras_combo.lineEdit().setReadOnly(True)
+        self.prefeituras_combo.lineEdit().setAlignment(Qt.AlignCenter)
+        self.prefeituras_combo.addItem('Consulta UF + Prefeituras')
+        for prefeitura in prefeituras_disponiveis:
+            self.prefeituras_combo.addItem(prefeitura)
+        self.prefeituras_combo.setItemDelegate(QStyledItemDelegate())
+        self.prefeituras_combo.view().pressed.connect(self.handleItemPressed)
+        self.prefeituras_combo.view().setFocusPolicy(Qt.NoFocus)
 
+    def _handle_checkbox_selection(self):
         self.output_text_area.clear()
         self.client_id_input.setEnabled(False)
         self.button_consulta_uf.setEnabled(False)
         self.button_consulta_autuador.setEnabled(False)
         self.button_consulta_autuador_mais_uf.setEnabled(False)
         self.button_orgaos_homologados.setEnabled(False)
+        self.prefeituras_combo.setEnabled(False)
 
         if self.check_plates.isChecked():
             self.check_ID.blockSignals(True)
@@ -117,6 +134,7 @@ class QueryGenerator(QWidget):
             self.check_ID.blockSignals(False)
             self.check_client_id.blockSignals(False)
             self.button_consulta_uf.setEnabled(True)
+            self.prefeituras_combo.setEnabled(True)
 
         elif self.check_ID.isChecked():
             self.check_plates.blockSignals(True)
@@ -142,11 +160,6 @@ class QueryGenerator(QWidget):
             self.check_plates.toggled.connect(self._handle_checkbox_selection)
             self.check_ID.toggled.connect(self._handle_checkbox_selection)
             self.check_client_id.toggled.connect(self._handle_checkbox_selection)
-
-            self.check_plates.toggled.connect(self._handle_checkbox_selection)
-            self.check_ID.toggled.connect(self._handle_checkbox_selection)
-            self.check_client_id.toggled.connect(self._handle_checkbox_selection)
-
 
     def _query_uf(self):
         if self.check_plates.isChecked():
@@ -192,6 +205,24 @@ class QueryGenerator(QWidget):
             self.status_bar.setText(f'{len(commands)} comandos gerados com sucesso.')
         except Exception as e:
             self.status_bar.setText(f'Erro ao executar a consulta: {e}')
+
+    def handleItemPressed(self, index):
+        item = self.prefeituras_combo.model().itemFromIndex(index)
+        if item.row() == 0:
+            return
+        if item.checkState() == Qt.Checked:
+            item.setCheckState(Qt.Unchecked)
+        else:
+            item.setCheckState(Qt.Checked)
+        self._query_uf_prefeituras()
+        self.prefeituras_combo.showPopup()
+
+    def _query_uf_prefeituras(self):
+        lista = self.input_text_area.toPlainText().strip().split()
+        prefeituras_selecionadas = [self.prefeituras_combo.itemText(i) for i in range(1, self.prefeituras_combo.count()) if self.prefeituras_combo.model().item(i).checkState() == Qt.Checked]
+        gerador_de_consultas = QueryGeneratorUFPrefeituras(connection=self.con, plates=lista, prefeituras=prefeituras_selecionadas, recibo=self.recibo_line.text(), day=self.line_days.text())
+        self.output_text_area.setPlainText(gerador_de_consultas.text)
+        self.status_bar.setText(f'Número de consultas: {gerador_de_consultas.number_of_queries}')
 
     def go_to_main_menu(self):
         self.main_window.show()

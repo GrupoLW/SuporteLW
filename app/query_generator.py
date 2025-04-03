@@ -98,17 +98,18 @@ class QueryGeneratorAutuador(QueryFormat, QObject):
             extra_param = '--capcloud' if 'prefeitura' in param.lower() else ''
 
             threads_param = '--threads=1' if param == 'pr' else ''
+            pdf_param = ' --pdf' if param == 'pr' else ''
 
             if self.recibo:
                 if param in ['prefeiturasp', 'sc', 'bradesco']:
-                    comando_consulta = f'{PREFIX_QUERY}{param} {comando_plates.strip()} {self.day} +todos --recibo={self.recibo}{SUFIX_CHROME} --attblt {extra_param} {threads_param}'
+                    comando_consulta = f'{PREFIX_QUERY}{param} {comando_plates.strip()} {self.day} +todos --recibo={self.recibo}{SUFIX_CHROME} --attblt {extra_param} {threads_param}{pdf_param}'
                 else:
-                    comando_consulta = f'{PREFIX_QUERY}{param} {comando_plates.strip()} {self.day} +todos --recibo={self.recibo} --attblt {extra_param} {threads_param}'
+                    comando_consulta = f'{PREFIX_QUERY}{param} {comando_plates.strip()} {self.day} +todos --recibo={self.recibo} --attblt {extra_param} {threads_param}{pdf_param}'
             else:
                 if param in ['prefeiturasp', 'sc', 'bradesco']:
-                    comando_consulta = f'{PREFIX_QUERY}{param} {comando_plates.strip()} {self.day} +todos{SUFIX_CHROME} --attblt {extra_param} {threads_param}'
+                    comando_consulta = f'{PREFIX_QUERY}{param} {comando_plates.strip()} {self.day} +todos{SUFIX_CHROME} --attblt {extra_param} {threads_param}{pdf_param}'
                 else:
-                    comando_consulta = f'{PREFIX_QUERY}{param} {comando_plates.strip()} {self.day} +todos --attblt {extra_param} {threads_param}'
+                    comando_consulta = f'{PREFIX_QUERY}{param} {comando_plates.strip()} {self.day} +todos --attblt {extra_param} {threads_param}{pdf_param}'
 
             if self._sort_query(param):
                 self.lista_consultas.insert(0, comando_consulta.strip())
@@ -155,9 +156,6 @@ class QueryGeneratorUF(QueryFormat, QObject):
         df.drop(['placa_lw_x', 'uf_veic_x'], axis=1, inplace=True)
         return df
 
-    def remover_caracteres_especiais(self, texto):
-        return re.sub(r'[^\w\s,]', '', texto).replace(' ', '')
-
     def make_query(self):
         df = pd.DataFrame({'Placa': self.plates, 'placa_lw': None, 'uf_veic': None})
         df['Placa'].astype(str)
@@ -186,24 +184,31 @@ class QueryGeneratorUF(QueryFormat, QObject):
                 else:
                     self.nao_consultamos[uf] = plates
 
-
+        # Adicionando consultas para as federal_agencies (dnit e dprf)
+        valid_plates = set(df['placa_lw'].dropna().to_list())
+        if not valid_plates:
+            valid_plates = set(self.plates)
+        for agency in federal_agencies:
+            if agency in self.consultas:
+                self.consultas[agency].update(valid_plates);
+            else:
+                self.consultas[agency] = valid_plates.copy()
 
         for param, plates in self.consultas.items():
             comando_plates = self.remover_caracteres_especiais(str(plates))
             extra_param = '--capcloud' if 'prefeitura' in param.lower() else ''
-
             threads_param = '--threads=1' if param == 'pr' else ''
-
+            pdf_param = ' --pdf' if param == 'pr' else ''
             if self.recibo:
                 if param in ['prefeiturasp', 'sc', 'bradesco']:
-                    comando_consulta = f'{PREFIX_QUERY}{param} {comando_plates.strip()} {self.day} +todos --recibo={self.recibo}{SUFIX_CHROME} --attblt {extra_param} {threads_param}'
+                    comando_consulta = f'{PREFIX_QUERY}{param} {comando_plates.strip()} {self.day} +todos --recibo={self.recibo}{SUFIX_CHROME} --attblt {extra_param} {threads_param}{pdf_param}'
                 else:
-                    comando_consulta = f'{PREFIX_QUERY}{param} {comando_plates.strip()} {self.day} +todos --recibo={self.recibo} --attblt {extra_param} {threads_param}'
+                    comando_consulta = f'{PREFIX_QUERY}{param} {comando_plates.strip()} {self.day} +todos --recibo={self.recibo} --attblt {extra_param} {threads_param}{pdf_param}'
             else:
                 if param in ['prefeiturasp', 'sc', 'bradesco']:
-                    comando_consulta = f'{PREFIX_QUERY}{param} {comando_plates.strip()} {self.day} +todos{SUFIX_CHROME} --attblt {extra_param} {threads_param}'
+                    comando_consulta = f'{PREFIX_QUERY}{param} {comando_plates.strip()} {self.day} +todos{SUFIX_CHROME} --attblt {extra_param} {threads_param}{pdf_param}'
                 else:
-                    comando_consulta = f'{PREFIX_QUERY}{param} {comando_plates.strip()} {self.day} +todos --attblt {extra_param} {threads_param}'
+                    comando_consulta = f'{PREFIX_QUERY}{param} {comando_plates.strip()} {self.day} +todos --attblt {extra_param} {threads_param}{pdf_param}'
 
             if self._sort_query(param):
                 self.lista_consultas.insert(0, comando_consulta.strip())
@@ -282,19 +287,18 @@ class QueryGeneratorUFWithID(QueryFormat, QObject):
         for param, plates in self.consultas.items():
             comando_plates = self.remover_caracteres_especiais(str(plates))
             extra_param = '--capcloud' if 'prefeitura' in param.lower() else ''
-
             threads_param = '--threads=1' if param == 'pr' else ''
-
+            pdf_param = ' --pdf' if param == 'pr' else ''
             if self.recibo:
                 if param in ['prefeiturasp', 'sc', 'bradesco']:
-                    comando_consulta = f'{PREFIX_QUERY}{param} {comando_plates.strip()} {self.day} +todos --recibo={self.recibo}{SUFIX_CHROME} --attblt {extra_param} {threads_param}'
+                    comando_consulta = f'{PREFIX_QUERY}{param} {comando_plates.strip()} {self.day} +todos --recibo={self.recibo}{SUFIX_CHROME} --attblt {extra_param} {threads_param}{pdf_param}'
                 else:
-                    comando_consulta = f'{PREFIX_QUERY}{param} {comando_plates.strip()} {self.day} +todos --recibo={self.recibo} --attblt {extra_param} {threads_param}'
+                    comando_consulta = f'{PREFIX_QUERY}{param} {comando_plates.strip()} {self.day} +todos --recibo={self.recibo} --attblt {extra_param} {threads_param}{pdf_param}'
             else:
                 if param in ['prefeiturasp', 'sc', 'bradesco']:
-                    comando_consulta = f'{PREFIX_QUERY}{param} {comando_plates.strip()} {self.day} +todos{SUFIX_CHROME} --attblt {extra_param} {threads_param}'
+                    comando_consulta = f'{PREFIX_QUERY}{param} {comando_plates.strip()} {self.day} +todos{SUFIX_CHROME} --attblt {extra_param} {threads_param}{pdf_param}'
                 else:
-                    comando_consulta = f'{PREFIX_QUERY}{param} {comando_plates.strip()} {self.day} +todos --attblt {extra_param} {threads_param}'
+                    comando_consulta = f'{PREFIX_QUERY}{param} {comando_plates.strip()} {self.day} +todos --attblt {extra_param} {threads_param}{pdf_param}'
 
             if self._sort_query(param):
                 self.lista_consultas.insert(0, comando_consulta.strip())
@@ -427,25 +431,130 @@ class QueryGeneratorUFAutuador(QueryFormat, QObject):
         for param, plates in self.consultas.items():
             comando_plates = self.remover_caracteres_especiais(str(plates))
             extra_param = '--capcloud' if 'prefeitura' in param.lower() else ''
-
             threads_param = '--threads=1' if param == 'pr' else ''
-
+            pdf_param = ' --pdf' if param == 'pr' else ''
             if self.recibo:
                 if param in ['prefeiturasp', 'sc', 'bradesco']:
-                    comando_consulta = f'{PREFIX_QUERY}{param} {comando_plates.strip()} {self.day} +todos --recibo={self.recibo}{SUFIX_CHROME} --attblt {extra_param} {threads_param}'
+                    comando_consulta = f'{PREFIX_QUERY}{param} {comando_plates.strip()} {self.day} +todos --recibo={self.recibo}{SUFIX_CHROME} --attblt {extra_param} {threads_param}{pdf_param}'
                 else:
-                    comando_consulta = f'{PREFIX_QUERY}{param} {comando_plates.strip()} {self.day} +todos --recibo={self.recibo} --attblt {extra_param} {threads_param}'
+                    comando_consulta = f'{PREFIX_QUERY}{param} {comando_plates.strip()} {self.day} +todos --recibo={self.recibo} --attblt {extra_param} {threads_param}{pdf_param}'
             else:
                 if param in ['prefeiturasp', 'sc', 'bradesco']:
-                    comando_consulta = f'{PREFIX_QUERY}{param} {comando_plates.strip()} {self.day} +todos{SUFIX_CHROME} --attblt {extra_param} {threads_param}'
+                    comando_consulta = f'{PREFIX_QUERY}{param} {comando_plates.strip()} {self.day} +todos{SUFIX_CHROME} --attblt {extra_param} {threads_param}{pdf_param}'
                 else:
-                    comando_consulta = f'{PREFIX_QUERY}{param} {comando_plates.strip()} {self.day} +todos --attblt {extra_param} {threads_param}'
+                    comando_consulta = f'{PREFIX_QUERY}{param} {comando_plates.strip()} {self.day} +todos --attblt {extra_param} {threads_param}{pdf_param}'
 
             if self._sort_query(param):
                 self.lista_consultas.insert(0, comando_consulta.strip())
             else:
                 self.lista_consultas.append(comando_consulta.strip())
 
+
+        self.text = '\n'.join(self.lista_consultas)
+        self.make_number_of_queries()
+
+    def make_number_of_queries(self):
+        for consulta in self.consultas:
+            self.number_of_queries += len(self.consultas[consulta])
+            
+class QueryGeneratorUFPrefeituras(QueryFormat, QObject):
+    def __init__(self, connection, plates, prefeituras, day, recibo):
+        super().__init__(connection=connection, day=day, recibo=recibo)
+        self.plates = plates
+        self.prefeituras = prefeituras
+        self.consultas = {}
+        self.lista_consultas = []
+        self.nao_consultamos = {}
+        self.text = ''
+        self.number_of_queries = 0
+        self.make_query()
+
+    def remover_caracteres_especiais(self, texto):
+        return re.sub(r'[^\w\s,]', '', texto).replace(' ', '')
+
+    def _sort_query(self, elemento):
+        ordem = {'mg': 1, 'detranpe': 2, 'pa': 3, 'df': 4, 'pi': 5}
+        if elemento in ordem:
+            return True
+        else:
+            return False
+
+    def search_vehicle_in_db(self, df, param):
+        placeholder_sequence = ', '.join(['%s'] * len(param))
+        query = f"""SELECT v.placa as placa_lw_x , v.uf_veic as uf_veic_x from veiculos v where v.placa in ({placeholder_sequence});"""
+        df_result = pd.read_sql(sql=query, con=self.con, params=param)
+        df = pd.merge(df, df_result,how='left', left_on=['Placa'], right_on='placa_lw_x')
+        df['placa_lw'].fillna(df['placa_lw_x'], inplace=True)
+        df['uf_veic'].fillna(df['uf_veic_x'], inplace=True)
+        df.drop(['placa_lw_x', 'uf_veic_x'], axis=1, inplace=True)
+        return df
+
+    def make_query(self):
+        df = pd.DataFrame({'Placa': self.plates, 'placa_lw': None, 'uf_veic': None})
+        df['Placa'].astype(str)
+
+        df = self.search_vehicle_in_db(df=df, param=self.plates)
+
+        if df.loc[df['placa_lw'].isna()].empty == False:
+            df.loc[df['placa_lw'].isna(), 'Placa'] = df.loc[df['placa_lw'].isna(), 'Placa'].apply(lambda plate: Vehicle.static_reverse_the_plate_pattern(plate))
+            plates = df.loc[df['placa_lw'].isna(), 'Placa'].to_list()
+            df = self.search_vehicle_in_db(df=df, param=plates)
+
+        uf_consultas = df['uf_veic'].unique()
+
+        for uf in uf_consultas:
+            if uf in centralizadores_uf_param_consulta:
+                param_uf = centralizadores_uf_param_consulta[uf]
+                if param_uf in self.consultas:
+                    plates = set(df.loc[df['uf_veic'] == uf]['placa_lw'].to_list())
+                    self.consultas[param_uf].update(plates)
+                else:
+                    self.consultas[param_uf] = set(df.loc[df['uf_veic'] == uf]['placa_lw'].to_list())
+            else:
+                plates = set(df.loc[df['uf_veic'] == uf]['placa_lw'].to_list())
+                if uf in self.nao_consultamos:
+                    self.nao_consultamos[uf].update(plates)
+                else:
+                    self.nao_consultamos[uf] = plates
+
+        # Adicionando consultas apenas para as prefeituras selecionadas
+        valid_plates = set(df['placa_lw'].dropna().to_list())
+        if not valid_plates:
+            valid_plates = set(self.plates)
+        for prefeitura in self.prefeituras:
+            if prefeitura in self.consultas:
+                self.consultas[prefeitura].update(valid_plates)
+            else:
+                self.consultas[prefeitura] = valid_plates.copy()
+
+        for param, plates in self.consultas.items():
+            if param not in self.prefeituras:
+                continue
+            comando_plates = self.remover_caracteres_especiais(str(plates))
+            extra_param = '--capcloud' if 'prefeitura' in param.lower() else ''
+            threads_param = '--threads=1' if param == 'pr' else ''
+            pdf_param = ' --pdf' if param == 'pr' else ''
+            if self.recibo:
+                if param in ['prefeiturasp', 'sc', 'bradesco']:
+                    comando_consulta = f'{PREFIX_QUERY}{param} {comando_plates.strip()} {self.day} +todos --recibo={self.recibo}{SUFIX_CHROME} --attblt {extra_param} {threads_param}{pdf_param}'
+                else:
+                    comando_consulta = f'{PREFIX_QUERY}{param} {comando_plates.strip()} {self.day} +todos --recibo={self.recibo} --attblt {extra_param} {threads_param}{pdf_param}'
+            else:
+                if param in ['prefeiturasp', 'sc', 'bradesco']:
+                    comando_consulta = f'{PREFIX_QUERY}{param} {comando_plates.strip()} {self.day} +todos{SUFIX_CHROME} --attblt {extra_param} {threads_param}{pdf_param}'
+                else:
+                    comando_consulta = f'{PREFIX_QUERY}{param} {comando_plates.strip()} {self.day} +todos --attblt {extra_param} {threads_param}{pdf_param}'
+
+            if self._sort_query(param):
+                self.lista_consultas.insert(0, comando_consulta.strip())
+            else:
+                self.lista_consultas.append(comando_consulta.strip())
+
+        self.lista_consultas.append(f'\nUF que não consultamos:{str(self.nao_consultamos)}')
+
+        if df.loc[df['placa_lw'].isna()].empty == False:
+            veiculo_nao_cadastrado = set(df.loc[df['placa_lw'].isna()]['Placa'].to_list())
+            self.lista_consultas.append(f'\n\nVeiculos não cadastrados:\n{veiculo_nao_cadastrado}')
 
         self.text = '\n'.join(self.lista_consultas)
         self.make_number_of_queries()
